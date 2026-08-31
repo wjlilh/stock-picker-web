@@ -1,4 +1,4 @@
-import { fetchIndexChange } from '../functions/lib/handlers.js'
+import { fetchIndexChange } from '../shared/handlers.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

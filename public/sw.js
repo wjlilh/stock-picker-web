@@ -1,8 +1,8 @@
 const CACHE = 'stock-picker-v1'
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg']
+const PRECACHE_URLS = ['/', '/index.html', '/manifest.json', '/icon.svg']
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)))
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE_URLS)))
   self.skipWaiting()
 })
 

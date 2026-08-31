@@ -1,22 +1,13 @@
-import { analyzeStock } from '../shared/handlers.js'
+import { analyzeStock } from '../../shared/handlers.js'
 
-function cors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-}
+const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
 
-export default async function handler(req, res) {
-  cors(res)
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })
-
+export async function onRequestPost(context) {
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+    const body = await context.request.json()
     const stocks = Array.isArray(body.stocks) ? body.stocks.slice(0, 6) : []
     const criteria = body.criteria || {}
     const indexChange = Number(body.indexChange) || 0
-
     const normalized = {
       minGain: criteria.minGain ?? 3,
       maxGain: criteria.maxGain ?? 5,
@@ -30,13 +21,25 @@ export default async function handler(req, res) {
       requireVWAP: criteria.requireVWAP !== false,
       requireIndex: criteria.requireIndex !== false
     }
-
     const results = await Promise.all(
       stocks.map((stock) => analyzeStock(stock, normalized, indexChange))
     )
-
-    res.status(200).json({ ok: true, data: results })
+    return new Response(JSON.stringify({ ok: true, data: results }), { headers: cors })
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message })
+    return new Response(JSON.stringify({ ok: false, error: err.message }), {
+      status: 500,
+      headers: cors
+    })
   }
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  })
 }

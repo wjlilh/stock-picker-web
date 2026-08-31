@@ -103,9 +103,8 @@ stock-picker-web/
 │   ├── quotes.js
 │   ├── index-change.js
 │   └── analyze.js
-├── functions/
-│   ├── api/[[path]].js   # Cloudflare Pages API 路由
-│   └── lib/handlers.js   # 行情抓取 + 筛选逻辑
+├── shared/handlers.js     # 行情抓取 + 筛选逻辑（Vercel + Cloudflare 共用）
+├── functions/api/         # Cloudflare Pages API
 ├── src/                 # 手机网页前端
 ├── public/              # PWA manifest、图标、Service Worker
 ├── server/dev-api.cjs   # 本地开发 API
