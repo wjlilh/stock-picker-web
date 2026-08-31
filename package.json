@@ -3,13 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "description": "尾盘选股 - 手机网页版（Vercel 部署）",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "node scripts/kill-dev-ports.js && concurrently -k -n api,vite -c magenta,cyan \"node server/dev-api.cjs\" \"vite\"",
     "build": "vite build",
     "preview": "vite preview"
   },
-  "devDependencies": {
-    "concurrently": "^9.1.2",
+  "dependencies": {
     "vite": "^6.0.7"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
