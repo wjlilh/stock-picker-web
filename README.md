@@ -32,6 +32,8 @@ npm run dev
 
 ## 部署到 Vercel（推荐）
 
+> **国内访问说明：** `*.vercel.app` 在中国大陆经常无法打开（电脑、手机都会报 `ERR_TUNNEL_CONNECTION_FAILED` 或「无法访问此网站」）。**部署成功 ≠ 国内能访问。** 若 Vercel 打不开，请改用下方 **Cloudflare Pages**，或继续用本地 `npm run dev`。
+
 ### 1. 准备 GitHub 仓库
 
 ```bash
@@ -59,6 +61,24 @@ git commit -m "init stock picker web"
 3. **Android Chrome**：菜单 → **添加到主屏幕** / **安装应用**
 
 之后从桌面图标打开即可。
+
+## 部署到 Cloudflare Pages（国内更容易访问）
+
+Vercel 在国内打不开的，建议用这个：
+
+1. 打开 [https://dash.cloudflare.com](https://dash.cloudflare.com) 注册（免费）
+2. 左侧 **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
+3. 授权 GitHub，选择 **stock-picker-web** 仓库
+4. 构建设置：
+   - Framework：**Vite**
+   - Build command：`npm run build`
+   - Build output：`dist`
+5. 点 **Save and Deploy**，等 2～3 分钟
+6. 得到地址：`https://stock-picker-web.pages.dev`（或类似）
+
+手机浏览器打开该地址 → **添加到主屏幕**。
+
+> 若 Cloudflare 仍不稳定，只能：① 在家用 `npm run dev` 局域网访问；② 以后换腾讯云/阿里云静态托管（需备案域名）。
 
 ## 项目结构
 
