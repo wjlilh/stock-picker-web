@@ -1,19 +1,62 @@
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+const EM_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'zh-CN,zh;q=0.9',
+  Referer: 'https://quote.eastmoney.com/'
+}
 
-async function fetchJson(url) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': UA, Accept: 'application/json' }
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+/** push2 在海外/Cloudflare 上常 502，push2delay 更稳 */
+const PUSH2_HOSTS = ['push2delay.eastmoney.com', 'push2.eastmoney.com']
+const PUSH2HIS_HOSTS = ['push2his.eastmoney.com', 'push2delay.eastmoney.com']
+
+/** Cloudflare Workers 免费版单次请求 subrequest 上限约 50 */
+const MAX_QUOTE_PAGES = 30
+
+let pushHostPref = 0
+let hisHostPref = 0
+
+async function emFetchJson(hosts, pathQuery, hostPrefKey) {
+  const start = hostPrefKey === 'his' ? hisHostPref : pushHostPref
+  const order = [...hosts.slice(start), ...hosts.slice(0, start)]
+  let lastErr = '东方财富接口无响应'
+
+  for (const host of order) {
+    const url = `https://${host}${pathQuery}`
+    try {
+      const res = await fetch(url, { headers: EM_HEADERS })
+      if (!res.ok) {
+        lastErr = `HTTP ${res.status}`
+        continue
+      }
+      const json = await res.json()
+      const idx = hosts.indexOf(host)
+      if (idx >= 0) {
+        if (hostPrefKey === 'his') hisHostPref = idx
+        else pushHostPref = idx
+      }
+      return json
+    } catch (err) {
+      lastErr = err.message || lastErr
+    }
+  }
+  throw new Error(lastErr)
+}
+
+async function fetchPush2(pathQuery) {
+  return emFetchJson(PUSH2_HOSTS, pathQuery, 'push')
+}
+
+async function fetchPush2His(pathQuery) {
+  return emFetchJson(PUSH2HIS_HOSTS, pathQuery, 'his')
 }
 
 async function fetchQuotePage(page, pageSize = 100) {
-  const url =
-    `https://push2.eastmoney.com/api/qt/clist/get?pn=${page}&pz=${pageSize}` +
+  const pathQuery =
+    `/api/qt/clist/get?pn=${page}&pz=${pageSize}` +
     `&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23` +
     `&fields=f2,f3,f5,f6,f8,f11,f12,f13,f14,f21`
-  const json = await fetchJson(url)
+  const json = await fetchPush2(pathQuery)
   const raw = json?.data?.diff
   const diff = Array.isArray(raw) ? raw : raw ? Object.values(raw) : []
   return diff
@@ -43,7 +86,7 @@ async function fetchQuotesByGainRange(minGain = 3, maxGain = 5, onProgress) {
   const pageSize = 100
   let done = false
 
-  while (page <= 80 && !done) {
+  while (page <= MAX_QUOTE_PAGES && !done) {
     if (onProgress) onProgress(page, collected.length)
     const batch = await fetchQuotePage(page, pageSize)
     if (!batch.length) break
@@ -59,7 +102,6 @@ async function fetchQuotesByGainRange(minGain = 3, maxGain = 5, onProgress) {
 
     if (batch.length < pageSize) break
     page += 1
-    await new Promise((r) => setTimeout(r, 60))
   }
   return collected
 }
@@ -68,23 +110,22 @@ async function fetchAllQuotes(onProgress) {
   const all = []
   let page = 1
   const pageSize = 100
-  while (page <= 60) {
+  while (page <= MAX_QUOTE_PAGES) {
     if (onProgress) onProgress(page, all.length)
     const batch = await fetchQuotePage(page, pageSize)
     all.push(...batch)
     if (batch.length < pageSize) break
     page += 1
-    await new Promise((r) => setTimeout(r, 60))
   }
   return all
 }
 
 async function fetchKLines(secId, limit = 60) {
-  const url =
-    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(secId)}` +
+  const pathQuery =
+    `/api/qt/stock/kline/get?secid=${encodeURIComponent(secId)}` +
     `&klt=101&fqt=1&lmt=${limit}&end=20500101&fields1=f1,f2,f3,f4,f5,f6` +
     `&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61`
-  const json = await fetchJson(url)
+  const json = await fetchPush2His(pathQuery)
   const lines = json?.data?.klines || []
   return lines.map((line) => {
     const p = line.split(',')
@@ -100,11 +141,11 @@ async function fetchKLines(secId, limit = 60) {
 }
 
 async function fetchTrends(secId) {
-  const url =
-    `https://push2.eastmoney.com/api/qt/stock/trends2/get?secid=${encodeURIComponent(secId)}` +
+  const pathQuery =
+    `/api/qt/stock/trends2/get?secid=${encodeURIComponent(secId)}` +
     `&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13` +
     `&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=1`
-  const json = await fetchJson(url)
+  const json = await fetchPush2(pathQuery)
   const trends = json?.data?.trends || []
   return trends.map((line) => {
     const p = line.split(',')
@@ -118,8 +159,7 @@ async function fetchTrends(secId) {
 }
 
 async function fetchIndexChange() {
-  const url = 'https://push2.eastmoney.com/api/qt/stock/get?secid=1.000001&fields=f3'
-  const json = await fetchJson(url)
+  const json = await fetchPush2('/api/qt/stock/get?secid=1.000001&fields=f3')
   return num(json?.data?.f3)
 }
 

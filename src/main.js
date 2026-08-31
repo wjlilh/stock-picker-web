@@ -217,7 +217,12 @@ async function runScreen() {
     localStorage.setItem('stock-picker-last-run', new Date().toISOString())
   } catch (err) {
     setStatus('筛选失败')
-    document.getElementById('results').innerHTML = `<p class="error">${err.message}</p>`
+    const msg = err.message || '未知错误'
+    const hint =
+      msg.includes('502') || msg.includes('东方财富')
+        ? '<p class="hint">云端访问东方财富可能受限，可改用电脑运行 <code>npm run dev:lan</code>，手机连同一 WiFi 访问。</p>'
+        : ''
+    document.getElementById('results').innerHTML = `<p class="error">${msg}</p>${hint}`
   } finally {
     clearInterval(timer)
     hideProgress()
