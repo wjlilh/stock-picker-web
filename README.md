@@ -76,6 +76,8 @@ Vercel 在国内打不开的，建议用这个：
 5. 点 **Save and Deploy**，等 2～3 分钟
 6. 得到地址：`https://stock-picker-web.pages.dev`（或类似）
 
+> 若构建失败并提示 `Unexpected fields found in build field: "environment"`：仓库里的 `wrangler.toml` 已去掉不支持的 `[build.environment]`，Node 版本改用 `.node-version`；推送后在本页点 **Retry deployment** 即可。
+
 手机浏览器打开该地址 → **添加到主屏幕**。
 
 > 若 Cloudflare 仍不稳定，只能：① 在家用 `npm run dev` 局域网访问；② 以后换腾讯云/阿里云静态托管（需备案域名）。
