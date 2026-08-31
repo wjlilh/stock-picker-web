@@ -81,14 +81,15 @@ Vercel 在国内打不开的，建议用这个：
 1. 打开 [https://dash.cloudflare.com](https://dash.cloudflare.com) 注册（免费）
 2. 左侧 **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
 3. 授权 GitHub，选择 **stock-picker-web** 仓库
-4. 构建设置：
-   - Framework：**Vite**
+4. **构建设置（必须手动填）**：
+   - Framework preset：**Vite**（或 None）
    - Build command：`npm run build`
-   - Build output：`dist`
+   - Build output directory：`dist`
+   - Root directory：留空
 5. 点 **Save and Deploy**，等 2～3 分钟
 6. 得到地址：`https://stock-picker-web.pages.dev`（或类似）
 
-> 若构建失败并提示 `Unexpected fields found in build field: "environment"`：仓库里的 `wrangler.toml` 已去掉不支持的 `[build.environment]`，Node 版本改用 `.node-version`；推送后在本页点 **Retry deployment** 即可。
+> **部署失败排查：** 进入项目 → **Deployments** → 点红色失败记录 → 看 **Build log** 最后几行。若 Settings → Builds 里 Build command 为空，填 `npm run build`、Output 填 `dist` 后 **Retry deployment**。
 
 手机浏览器打开该地址 → **添加到主屏幕**。
 
@@ -102,7 +103,9 @@ stock-picker-web/
 │   ├── quotes.js
 │   ├── index-change.js
 │   └── analyze.js
-├── functions/lib/handlers.js  # 行情抓取 + 筛选逻辑
+├── functions/
+│   ├── api/[[path]].js   # Cloudflare Pages API 路由
+│   └── lib/handlers.js   # 行情抓取 + 筛选逻辑
 ├── src/                 # 手机网页前端
 ├── public/              # PWA manifest、图标、Service Worker
 ├── server/dev-api.cjs   # 本地开发 API
