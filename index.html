@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#c41e24" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="尾盘选股" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <title>尾盘选股</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="header">
+        <h1>尾盘选股</h1>
+        <button id="btn-settings" class="icon-btn" type="button" aria-label="设置">⚙</button>
+      </header>
+
+      <section class="tips">
+        建议交易日 <strong>14:30</strong> 左右筛选 · 规则：涨幅3-5% · 量比&gt;1 · 换手5-10% · 市值50-200亿
+      </section>
+
+      <section class="actions">
+        <button id="btn-screen" class="btn-primary" type="button">开始筛选</button>
+        <div id="progress-wrap" class="progress-wrap hidden">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="status" class="status">点击开始，从网络拉取 A 股行情并分析</p>
+      </section>
+
+      <section id="results" class="results"></section>
+
+      <dialog id="dlg-settings">
+        <form method="dialog" class="settings-form">
+          <h2>筛选条件</h2>
+          <label>涨幅下限 %<input id="minGain" type="number" step="0.1" value="3" /></label>
+          <label>涨幅上限 %<input id="maxGain" type="number" step="0.1" value="5" /></label>
+          <label>量比 &gt;<input id="minVolRatio" type="number" step="0.1" value="1" /></label>
+          <label>换手率下限 %<input id="minTurnover" type="number" step="0.1" value="5" /></label>
+          <label>换手率上限 %<input id="maxTurnover" type="number" step="0.1" value="10" /></label>
+          <label>流通市值下限(亿)<input id="minCap" type="number" step="1" value="50" /></label>
+          <label>流通市值上限(亿)<input id="maxCap" type="number" step="1" value="200" /></label>
+          <label class="checkbox"><input id="requireMA" type="checkbox" checked /> 均线多头排列</label>
+          <label class="checkbox"><input id="requireVWAP" type="checkbox" checked /> 分时在均价线上方</label>
+          <label class="checkbox"><input id="requireIndex" type="checkbox" checked /> 跑赢上证指数</label>
+          <menu class="dlg-actions">
+            <button value="cancel" type="submit">取消</button>
+            <button value="ok" type="submit" class="btn-primary">保存</button>
+          </menu>
+        </form>
+      </dialog>
+
+      <footer class="footer">
+        数据来自东方财富 · 仅供学习研究 · 不构成投资建议
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
