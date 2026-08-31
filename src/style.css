@@ -189,6 +189,24 @@ summary {
   color: var(--primary);
 }
 
+.hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff8f0;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: left;
+  line-height: 1.5;
+}
+
+.hint code {
+  font-size: 0.78rem;
+  background: #eee;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 .footer {
   margin-top: 24px;
   text-align: center;
