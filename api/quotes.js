@@ -1,4 +1,4 @@
-import { fetchQuotesByGainRange } from '../lib/handlers.js'
+import { fetchQuotesByGainRange } from '../functions/lib/handlers.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

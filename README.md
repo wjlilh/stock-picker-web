@@ -102,7 +102,7 @@ stock-picker-web/
 │   ├── quotes.js
 │   ├── index-change.js
 │   └── analyze.js
-├── lib/handlers.js      # 行情抓取 + 筛选逻辑
+├── functions/lib/handlers.js  # 行情抓取 + 筛选逻辑
 ├── src/                 # 手机网页前端
 ├── public/              # PWA manifest、图标、Service Worker
 ├── server/dev-api.cjs   # 本地开发 API

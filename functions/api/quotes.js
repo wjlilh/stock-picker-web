@@ -1,4 +1,4 @@
-import { fetchQuotesByGainRange } from '../../lib/handlers.js'
+import { fetchQuotesByGainRange } from '../lib/handlers.js'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
 

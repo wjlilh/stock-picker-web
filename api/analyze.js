@@ -1,4 +1,4 @@
-import { analyzeStock } from '../lib/handlers.js'
+import { analyzeStock } from '../functions/lib/handlers.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
