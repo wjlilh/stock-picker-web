@@ -1,4 +1,4 @@
-const { analyzeStock } = require('../lib/handlers')
+import { analyzeStock } from '../lib/handlers.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -6,7 +6,7 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   cors(res)
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' })

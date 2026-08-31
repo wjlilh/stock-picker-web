@@ -1,11 +1,11 @@
-const { fetchQuotesByGainRange } = require('../lib/handlers')
+import { fetchQuotesByGainRange } from '../lib/handlers.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   cors(res)
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only' })

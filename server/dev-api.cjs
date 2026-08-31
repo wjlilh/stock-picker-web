@@ -1,7 +1,16 @@
 const http = require('node:http')
-const quotes = require('../api/quotes')
-const indexChange = require('../api/index-change')
-const analyze = require('../api/analyze')
+
+let quotes
+let indexChange
+let analyze
+
+async function loadHandlers() {
+  if (!quotes) {
+    quotes = (await import('../api/quotes.js')).default
+    indexChange = (await import('../api/index-change.js')).default
+    analyze = (await import('../api/analyze.js')).default
+  }
+}
 
 process.on('uncaughtException', (err) => {
   console.error('[dev-api] uncaughtException:', err)
@@ -38,6 +47,7 @@ const server = http.createServer((req, res) => {
   req.on('data', (c) => (body += c))
   req.on('end', async () => {
     try {
+      await loadHandlers()
       const r = mockRes(res)
       const fakeReq = {
         method: req.method,

@@ -2,12 +2,14 @@
   "name": "stock-picker-web",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "尾盘选股 - 手机网页版（Vercel 部署）",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "dev": "node scripts/kill-dev-ports.js && concurrently -k -n api,vite -c magenta,cyan \"node server/dev-api.cjs\" \"vite\"",
+    "dev:lan": "node scripts/kill-dev-ports.js && concurrently -k -n api,vite -c magenta,cyan \"node server/dev-api.cjs\" \"vite --host\"",
     "build": "vite build",
     "preview": "vite preview"
   },

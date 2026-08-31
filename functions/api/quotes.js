@@ -1,7 +1,4 @@
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-const { fetchQuotesByGainRange } = require('../../lib/handlers.js')
+import { fetchQuotesByGainRange } from '../../lib/handlers.js'
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
 

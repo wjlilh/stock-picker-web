@@ -62,6 +62,18 @@ git commit -m "init stock picker web"
 
 之后从桌面图标打开即可。
 
+## 手机局域网访问（Cloudflare / Vercel 都打不开时）
+
+在公司网络下，海外托管（Vercel、Cloudflare）经常无法访问。可让 **手机和电脑连同一 WiFi**，在电脑上运行：
+
+```bash
+npm run dev:lan
+```
+
+终端会显示类似 `http://192.168.x.x:5199`，**用手机浏览器打开这个地址**即可使用（需关闭 Fiddler 或绕过 localhost）。
+
+> Windows 查 IP：命令行运行 `ipconfig`，看「无线局域网适配器」下的 **IPv4 地址**。
+
 ## 部署到 Cloudflare Pages（国内更容易访问）
 
 Vercel 在国内打不开的，建议用这个：
