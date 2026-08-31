@@ -93,31 +93,36 @@ function hideProgress() {
   document.getElementById('progress-bar').style.width = '0%'
 }
 
-function renderResults(list) {
+function renderResults(list, { partial = false } = {}) {
   const el = document.getElementById('results')
   if (!list.length) {
-    el.innerHTML = '<p class="empty">今日暂无完全符合 7 条规则的股票</p>'
+    el.innerHTML = '<p class="empty">今日暂无符合条件的股票</p>'
     return
   }
-  el.innerHTML = list
-    .map(
-      (r) => `
-    <article class="card" data-code="${r.stock.code}">
+  const note = partial
+    ? '<p class="partial-note">未找到全部满足 7 条规则的标的，以下为最接近的候选（按得分排序）：</p>'
+    : ''
+  el.innerHTML =
+    note +
+    list
+      .map(
+        (r) => `
+    <article class="card${r.qualified ? '' : ' card-partial'}" data-code="${r.stock.code}">
       <div class="card-head">
         <div>
-          <div class="name">${r.stock.name}</div>
+          <div class="name">${r.stock.name}${r.qualified ? ' <span class="tag-ok">符合</span>' : ''}</div>
           <div class="code">${r.stock.code}</div>
         </div>
         <div class="gain">+${r.stock.changePercent.toFixed(2)}%</div>
       </div>
-      <div class="meta">量比 ${r.stock.volumeRatio.toFixed(2)} · 换手 ${r.stock.turnoverPercent.toFixed(2)}%</div>
+      <div class="meta">量比 ${r.stock.volumeRatio.toFixed(2)} · 换手 ${r.stock.turnoverPercent.toFixed(2)}% · 市值 ${r.stock.circulatingCapYi.toFixed(0)}亿</div>
       <details>
-        <summary>查看通过项 (${r.passed.length})</summary>
-        <ul class="rules">${r.passed.map((x) => `<li class="ok">✓ ${x}</li>`).join('')}</ul>
+        <summary>通过 ${r.passed.length} 项${r.failed.length ? ` · 未过 ${r.failed.length} 项` : ''}</summary>
+        <ul class="rules">${r.passed.map((x) => `<li class="ok">✓ ${x}</li>`).join('')}${r.failed.map((x) => `<li class="bad">✗ ${x}</li>`).join('')}</ul>
       </details>
     </article>`
-    )
-    .join('')
+      )
+      .join('')
 }
 
 function readFormCriteria() {
@@ -169,7 +174,7 @@ async function runScreen() {
   }, 1000)
 
   try {
-    setStatus('正在拉取涨幅 3~5% 区间行情（约 10~30 秒）…')
+    setStatus(`正在拉取涨幅 ${criteria.minGain}~${criteria.maxGain}% 区间行情…`)
     showProgress(8)
 
     const qs = new URLSearchParams({
@@ -190,37 +195,50 @@ async function runScreen() {
 
     const { indexChange } = await apiGet('/api/index-change', 30000)
     const matched = []
+    const analyzed = []
     const batchSize = 4
     const total = candidates.length
+    const analyzeLimit = Math.min(total, 24)
 
-    for (let i = 0; i < total; i += batchSize) {
+    for (let i = 0; i < analyzeLimit; i += batchSize) {
       const batch = candidates.slice(i, i + batchSize)
-      const done = Math.min(i + batchSize, total)
-      const pct = 35 + Math.round((done / total) * 60)
+      const done = Math.min(i + batchSize, analyzeLimit)
+      const pct = 35 + Math.round((done / analyzeLimit) * 60)
       showProgress(pct)
-      setStatus(`深度分析 ${done}/${total}（已找到 ${matched.length} 只，${tick.n}s）…`)
+      setStatus(`深度分析 ${done}/${analyzeLimit}（已符合 ${matched.length} 只，${tick.n}s）…`)
 
       const { data } = await apiPost('/api/analyze', {
         stocks: batch,
         criteria,
         indexChange
       })
+      analyzed.push(...data)
       const hit = data.filter((r) => r.qualified)
       matched.push(...hit)
       if (hit.length) renderResults(matched.sort((a, b) => b.score - a.score))
     }
 
     matched.sort((a, b) => b.score - a.score)
-    renderResults(matched)
+    analyzed.sort((a, b) => b.score - a.score)
+
+    if (matched.length) {
+      renderResults(matched)
+      setStatus(`完成：扫描 ${quotes.length} 只，候选 ${total} 只，完全符合 ${matched.length} 只（${tick.n}s）`)
+    } else if (analyzed.length) {
+      renderResults(analyzed.slice(0, 10), { partial: true })
+      setStatus(`完成：无全部符合项，展示最接近的 ${Math.min(10, analyzed.length)} 只（${tick.n}s）`)
+    } else {
+      renderResults([])
+      setStatus(`完成：候选 ${total} 只，深度分析无结果（${tick.n}s）`)
+    }
     showProgress(100)
-    setStatus(`完成：扫描 ${quotes.length} 只，候选 ${total} 只，符合 ${matched.length} 只（${tick.n}s）`)
     localStorage.setItem('stock-picker-last-run', new Date().toISOString())
   } catch (err) {
     setStatus('筛选失败')
     const msg = err.message || '未知错误'
     const hint =
-      msg.includes('502') || msg.includes('东方财富')
-        ? '<p class="hint">云端访问东方财富可能受限，可改用电脑运行 <code>npm run dev:lan</code>，手机连同一 WiFi 访问。</p>'
+      msg.includes('502') || msg.includes('fetch failed') || msg.includes('东方财富')
+        ? '<p class="hint">连接东方财富不稳定，请重试；若开着 Fiddler 请关闭。仍失败可用 <code>npm run dev:lan</code> 或直接用线上版。</p>'
         : ''
     document.getElementById('results').innerHTML = `<p class="error">${msg}</p>${hint}`
   } finally {

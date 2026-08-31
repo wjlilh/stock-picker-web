@@ -6,15 +6,21 @@ const EM_HEADERS = {
   Referer: 'https://quote.eastmoney.com/'
 }
 
-/** push2 在海外/Cloudflare 上常 502，push2delay 更稳 */
-const PUSH2_HOSTS = ['push2delay.eastmoney.com', 'push2.eastmoney.com']
+/** push2 在本地/国内更稳，push2delay 在 Cloudflare 上更稳 */
+const PUSH2_HOSTS = ['push2.eastmoney.com', 'push2delay.eastmoney.com']
 const PUSH2HIS_HOSTS = ['push2his.eastmoney.com', 'push2delay.eastmoney.com']
 
 /** Cloudflare Workers 免费版单次请求 subrequest 上限约 50 */
 const MAX_QUOTE_PAGES = 30
+const FETCH_RETRIES = 3
+const PAGE_DELAY_MS = 80
 
 let pushHostPref = 0
 let hisHostPref = 0
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
 
 async function emFetchJson(hosts, pathQuery, hostPrefKey) {
   const start = hostPrefKey === 'his' ? hisHostPref : pushHostPref
@@ -23,21 +29,25 @@ async function emFetchJson(hosts, pathQuery, hostPrefKey) {
 
   for (const host of order) {
     const url = `https://${host}${pathQuery}`
-    try {
-      const res = await fetch(url, { headers: EM_HEADERS })
-      if (!res.ok) {
-        lastErr = `HTTP ${res.status}`
-        continue
+    for (let attempt = 0; attempt < FETCH_RETRIES; attempt++) {
+      try {
+        const res = await fetch(url, { headers: EM_HEADERS })
+        if (!res.ok) {
+          lastErr = `HTTP ${res.status}`
+          if (attempt < FETCH_RETRIES - 1) await sleep(150 * (attempt + 1))
+          continue
+        }
+        const json = await res.json()
+        const idx = hosts.indexOf(host)
+        if (idx >= 0) {
+          if (hostPrefKey === 'his') hisHostPref = idx
+          else pushHostPref = idx
+        }
+        return json
+      } catch (err) {
+        lastErr = err.message || lastErr
+        if (attempt < FETCH_RETRIES - 1) await sleep(200 * (attempt + 1))
       }
-      const json = await res.json()
-      const idx = hosts.indexOf(host)
-      if (idx >= 0) {
-        if (hostPrefKey === 'his') hisHostPref = idx
-        else pushHostPref = idx
-      }
-      return json
-    } catch (err) {
-      lastErr = err.message || lastErr
     }
   }
   throw new Error(lastErr)
@@ -55,7 +65,7 @@ async function fetchQuotePage(page, pageSize = 100) {
   const pathQuery =
     `/api/qt/clist/get?pn=${page}&pz=${pageSize}` +
     `&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23` +
-    `&fields=f2,f3,f5,f6,f8,f11,f12,f13,f14,f21`
+    `&fields=f2,f3,f5,f6,f8,f10,f11,f12,f13,f14,f21`
   const json = await fetchPush2(pathQuery)
   const raw = json?.data?.diff
   const diff = Array.isArray(raw) ? raw : raw ? Object.values(raw) : []
@@ -70,7 +80,7 @@ async function fetchQuotePage(page, pageSize = 100) {
         market: item.f13,
         price: num(item.f2),
         changePercent: num(item.f3),
-        volumeRatio: num(item.f11),
+        volumeRatio: num(item.f10),
         turnoverPercent: num(item.f8),
         circulatingCapYi: num(item.f21) / 1e8,
         secId: `${item.f13}.${code}`
@@ -102,6 +112,7 @@ async function fetchQuotesByGainRange(minGain = 3, maxGain = 5, onProgress) {
 
     if (batch.length < pageSize) break
     page += 1
+    if (PAGE_DELAY_MS > 0) await sleep(PAGE_DELAY_MS)
   }
   return collected
 }
@@ -116,6 +127,7 @@ async function fetchAllQuotes(onProgress) {
     all.push(...batch)
     if (batch.length < pageSize) break
     page += 1
+    if (PAGE_DELAY_MS > 0) await sleep(PAGE_DELAY_MS)
   }
   return all
 }
@@ -159,8 +171,16 @@ async function fetchTrends(secId) {
 }
 
 async function fetchIndexChange() {
-  const json = await fetchPush2('/api/qt/stock/get?secid=1.000001&fields=f3')
-  return num(json?.data?.f3)
+  for (const host of PUSH2_HOSTS) {
+    try {
+      const json = await emFetchJson([host], '/api/qt/stock/get?secid=1.000001&fields=f3', 'push')
+      const v = num(json?.data?.f3)
+      if (v !== 0) return v
+    } catch {
+      /* try next host */
+    }
+  }
+  return 0
 }
 
 function num(v) {
