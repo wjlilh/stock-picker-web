@@ -13,8 +13,29 @@ const defaultCriteria = () => ({
   stairDays: 5,
   requireMA: true,
   requireVWAP: true,
-  requireIndex: true
+  requireIndex: true,
+  /** 新开户常无权限，默认排除；开通权限后在设置里取消勾选即可 */
+  excludeStar: true,
+  excludeChiNext: true,
+  excludeBSE: true
 })
+
+/** 688/689 科创板，300/301 创业板，8/4 开头多为北交所 */
+function getBoardLabel(code) {
+  const c = String(code)
+  if (c.startsWith('688') || c.startsWith('689')) return '科创板'
+  if (c.startsWith('300') || c.startsWith('301')) return '创业板'
+  if (/^[84]/.test(c)) return '北交所'
+  return '主板'
+}
+
+function passesBoard(q, c) {
+  const code = String(q.code)
+  if (c.excludeStar && (code.startsWith('688') || code.startsWith('689'))) return false
+  if (c.excludeChiNext && (code.startsWith('300') || code.startsWith('301'))) return false
+  if (c.excludeBSE && /^[84]/.test(code)) return false
+  return true
+}
 
 function loadCriteria() {
   try {
@@ -111,7 +132,7 @@ function renderResults(list, { partial = false } = {}) {
       <div class="card-head">
         <div>
           <div class="name">${r.stock.name}${r.qualified ? ' <span class="tag-ok">符合</span>' : ''}</div>
-          <div class="code">${r.stock.code}</div>
+          <div class="code">${r.stock.code} · ${getBoardLabel(r.stock.code)}</div>
         </div>
         <div class="gain">+${r.stock.changePercent.toFixed(2)}%</div>
       </div>
@@ -137,7 +158,10 @@ function readFormCriteria() {
     stairDays: 5,
     requireMA: document.getElementById('requireMA').checked,
     requireVWAP: document.getElementById('requireVWAP').checked,
-    requireIndex: document.getElementById('requireIndex').checked
+    requireIndex: document.getElementById('requireIndex').checked,
+    excludeStar: document.getElementById('excludeStar').checked,
+    excludeChiNext: document.getElementById('excludeChiNext').checked,
+    excludeBSE: document.getElementById('excludeBSE').checked
   }
 }
 
@@ -152,6 +176,9 @@ function fillForm(c) {
   document.getElementById('requireMA').checked = c.requireMA
   document.getElementById('requireVWAP').checked = c.requireVWAP
   document.getElementById('requireIndex').checked = c.requireIndex
+  document.getElementById('excludeStar').checked = c.excludeStar !== false
+  document.getElementById('excludeChiNext').checked = c.excludeChiNext !== false
+  document.getElementById('excludeBSE').checked = c.excludeBSE !== false
 }
 
 let criteria = loadCriteria()
@@ -184,8 +211,13 @@ async function runScreen() {
     const { data: quotes } = await apiGet(`/api/quotes?${qs}`, 180000)
     showProgress(35)
 
-    const candidates = quotes.filter((q) => passesBasic(q, criteria))
-    setStatus(`涨幅区间 ${quotes.length} 只 → 规则1~4 通过 ${candidates.length} 只，深度分析中…`)
+    const tradable = quotes.filter((q) => passesBoard(q, criteria))
+    const candidates = tradable.filter((q) => passesBasic(q, criteria))
+    const boardSkipped = quotes.length - tradable.length
+    const boardHint = boardSkipped ? `，排除无权限板块 ${boardSkipped} 只` : ''
+    setStatus(
+      `涨幅区间 ${quotes.length} 只 → 可买 ${tradable.length} 只${boardHint} → 规则1~4 通过 ${candidates.length} 只，深度分析中…`
+    )
 
     if (!candidates.length) {
       renderResults([])

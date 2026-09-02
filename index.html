@@ -48,6 +48,11 @@
           <label class="checkbox"><input id="requireMA" type="checkbox" checked /> 均线多头排列</label>
           <label class="checkbox"><input id="requireVWAP" type="checkbox" checked /> 分时在均价线上方</label>
           <label class="checkbox"><input id="requireIndex" type="checkbox" checked /> 跑赢上证指数</label>
+          <p class="settings-section">账户可买板块（新开户默认排除，开通权限后可取消勾选）</p>
+          <label class="checkbox"><input id="excludeStar" type="checkbox" checked /> 排除科创板（688/689）</label>
+          <label class="checkbox"><input id="excludeChiNext" type="checkbox" checked /> 排除创业板（300/301）</label>
+          <label class="checkbox"><input id="excludeBSE" type="checkbox" checked /> 排除北交所（8/4 开头）</label>
+          <p class="settings-hint">主板 600/601/603/000/001/002 等不受影响。不确定买不了哪个时，三个都勾选最省心。</p>
           <menu class="dlg-actions">
             <button value="cancel" type="submit">取消</button>
             <button value="ok" type="submit" class="btn-primary">保存</button>
